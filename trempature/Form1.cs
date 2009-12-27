@@ -38,6 +38,8 @@ namespace trempature
 
         private void RetrieveTemperature(object state)
         {
+            // TODO: Fix this so we don't hardcode, but rather let the user select
+            // locations from http://www.weather.gov/xml/current_obs/index.xml
             try
             {
                 var doc = XDocument.Load("http://www.weather.gov/xml/current_obs/KMSP.xml");
