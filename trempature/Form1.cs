@@ -29,6 +29,11 @@ namespace trempature
         private void timer1_Tick(object sender, EventArgs e)
         {
             RetrieveTemperatureAsync();
+
+            // Need to update here as well so that the background
+            // will turn red if we haven't been able to update 
+            // for a while. 
+            UpdateIcon(); 
         }
 
         private void RetrieveTemperatureAsync()
