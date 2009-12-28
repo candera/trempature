@@ -33,7 +33,7 @@ namespace trempature
             // Need to update here as well so that the background
             // will turn red if we haven't been able to update 
             // for a while. 
-            UpdateIcon(); 
+            UpdateDisplay(); 
         }
 
         private void RetrieveTemperatureAsync()
@@ -52,16 +52,18 @@ namespace trempature
                 float temp = float.Parse(tempValue);
                 _tempText = ((int)(temp + 0.5F)).ToString();
                 _lastUpdate = DateTime.Now;
-                Invoke(new Action(UpdateIcon)); 
+                Invoke(new Action(UpdateDisplay)); 
             }
             catch (Exception)
             {
             }
         }
 
-        private void UpdateIcon()
+        private void UpdateDisplay()
         {
             notifyIcon1.Icon = GetIcon();
+            notifyIcon1.Text = string.Format("Trempature: {0} deg F. Last updated {1}",
+                _tempText, _lastUpdate); 
         }
 
         private void DrawFilledRegion(Graphics g, Pen pen, Brush brush, int x, int y, int width, int height)
@@ -135,7 +137,7 @@ namespace trempature
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            UpdateIcon(); 
+            UpdateDisplay(); 
             PutToTray();
             RetrieveTemperatureAsync(); 
         }
