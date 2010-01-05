@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.Threading;
 using System.Net;
 using System.Xml.Linq;
+using System.IO;
 
 namespace trempature
 {
@@ -16,8 +17,31 @@ namespace trempature
     {
         private bool _allowClose;
         private Font _iconFont; 
-        private string _tempText = "XX";
-        private DateTime _lastUpdate = DateTime.MinValue; 
+        private string _tempText = "NA";
+        private DateTime _lastUpdate = DateTime.MinValue;
+        private readonly ManageLocationsDialog _manageLocationsDialog = new ManageLocationsDialog();
+        private string _currentStationId;
+
+        private Station CurrentStation
+        {
+            get
+            {
+                if (_currentStationId == null)
+                {
+                    return null; 
+                }
+                return _manageLocationsDialog.SelectedStations.FirstOrDefault(s => s.Id.Equals(_currentStationId));
+            }
+        }
+
+        private string UserPrefsPath
+        {
+            get
+            {
+                return Path.Combine(Paths.UserAppDataDir, "prefs.xml");  
+            }
+
+        }
 
         public Form1()
         {
@@ -43,11 +67,9 @@ namespace trempature
 
         private void RetrieveTemperature(object state)
         {
-            // TODO: Fix this so we don't hardcode, but rather let the user select
-            // locations from http://www.weather.gov/xml/current_obs/index.xml
             try
             {
-                var doc = XDocument.Load("http://www.weather.gov/xml/current_obs/KMSP.xml");
+                var doc = XDocument.Load(CurrentStation.XmlUrl);
                 var tempValue = doc.Root.Element("temp_f").Value;
                 float temp = float.Parse(tempValue);
                 _tempText = ((int)(temp + 0.5F)).ToString();
@@ -62,8 +84,15 @@ namespace trempature
         private void UpdateDisplay()
         {
             notifyIcon1.Icon = GetIcon();
-            notifyIcon1.Text = string.Format("Trempature: {0} deg F. Last updated {1}",
-                _tempText, _lastUpdate); 
+            if (CurrentStation == null)
+            {
+                notifyIcon1.Text = "No current station";
+            }
+            else
+            {
+                notifyIcon1.Text = string.Format("{2}: {0}F. Last update {1}",
+                    _tempText, _lastUpdate, _currentStationId);
+            }
         }
 
         private void DrawFilledRegion(Graphics g, Pen pen, Brush brush, int x, int y, int width, int height)
@@ -137,9 +166,10 @@ namespace trempature
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            LoadPrefs();
             UpdateDisplay(); 
             PutToTray();
-            RetrieveTemperatureAsync(); 
+            AddStations(_manageLocationsDialog.SelectedStations); 
         }
 
         private void showToolStripMenuItem_Click(object sender, EventArgs e)
@@ -163,6 +193,109 @@ namespace trempature
             if (WindowState == FormWindowState.Minimized)
             {
                 PutToTray();
+            }
+        }
+
+        private void manageLocationsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var currentStations = new HashSet<Station>(_manageLocationsDialog.SelectedStations); 
+
+            if (_manageLocationsDialog.ShowDialog() == DialogResult.OK)
+            {
+                var newStations = new HashSet<Station>(_manageLocationsDialog.SelectedStations);
+
+                var stationsToRemove = currentStations.Except(newStations);
+                var stationsToAdd = newStations.Except(currentStations);
+
+                AddStations(stationsToAdd);
+
+                foreach (var stationToRemove in stationsToRemove)
+                {
+                    locationToolStripMenuItem.DropDownItems.RemoveByKey(stationToRemove.Id); 
+                }
+            }
+        }
+
+        private void AddStations(IEnumerable<Station> stationsToAdd)
+        {
+            foreach (var stationToAdd in stationsToAdd)
+            {
+                var item = new ToolStripMenuItem
+                {
+                    Name = stationToAdd.Id,
+                    Text = stationToAdd.Id,
+                    Tag = stationToAdd,
+                    //ToolTipText = stationToAdd.Name,  // Causes problems by eating the mouse click meant for the menu item itself
+                    Checked = stationToAdd.Id.Equals(_currentStationId)
+                };
+                item.Click += new EventHandler(Station_Clicked);
+                locationToolStripMenuItem.DropDownItems.Add(item);
+            }
+        }
+
+        void Station_Clicked(object sender, EventArgs e)
+        {
+            var menuItem = sender as ToolStripMenuItem;
+            var station = menuItem.Tag as Station;
+
+            foreach (var item in locationToolStripMenuItem.DropDownItems)
+            {
+                var tsmi = item as ToolStripMenuItem; 
+                if (tsmi != null)
+                {
+                    var s = tsmi.Tag as Station;
+
+                    if (s != null)
+                    {
+                        if (s == station)
+                        {
+                            tsmi.Checked = true;
+                            SetCurrentStation(s);
+                        }
+                        else
+                        {
+                            tsmi.Checked = false; 
+                        }
+                    }
+                }
+            }
+        }
+
+        private void SetCurrentStation(Station s)
+        {
+            _currentStationId = s.Id;
+            _lastUpdate = DateTime.MinValue;
+            RetrieveTemperatureAsync();
+            SavePrefs(); 
+        }
+
+        private void SavePrefs()
+        {
+            var doc = new XDocument(
+                new XElement("prefs",
+                    new XAttribute("version", "1"),
+                    new XElement("current-station", 
+                        new XAttribute("id", CurrentStation.Id), 
+                        new XAttribute("url", CurrentStation.XmlUrl)))); 
+
+            doc.Save(UserPrefsPath); 
+        }
+
+        private void LoadPrefs()
+        {
+            if (File.Exists(UserPrefsPath))
+            {
+                var doc = XDocument.Load(UserPrefsPath);
+
+                var cse = doc.Root.Element("current-station");
+
+                var s = new Station
+                {
+                    Id = cse.Attribute("id").Value,
+                    XmlUrl = cse.Attribute("url").Value
+                };
+
+                SetCurrentStation(s); 
             }
         }
 
