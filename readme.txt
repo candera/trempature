@@ -7,14 +7,16 @@ the background turns red.
 
 Limitations: 
 
-* Currently hardcoded to display the temperature at MSP airport. 
 * Always displays the temperature in degrees farenheight. 
-* Written by me in about half an hour. :) 
 
-If you want to display a different location, either wait for me to 
-update the program (no promises on schedule) or change the URL in 
-Form1.cs (RetrieveTemperature) to one of the XML URLs listed in
-http://www.weather.gov/xml/current_obs/index.xml. 
+To display the temperature in your location, run the program,
+right-click the icon in the tray (it will read "NA"), select
+"Locations" and "Manage Locations", and add a location near you. Then
+right-click again, go to "Locations" and pick the location you added.
+Click "OK", and within a few seconds, you should see the temperature
+at that location appear.
+
+Expect improvements to the location management stuff fairly soon. 
 
 Questions, comments, requests: contact me at candera@wangdera.com.
 
