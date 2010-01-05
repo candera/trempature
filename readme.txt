@@ -21,4 +21,4 @@ Expect improvements to the location management stuff fairly soon.
 Questions, comments, requests: contact me at candera@wangdera.com.
 
 -Craig Andera
-December 27th, 2009
+January 5th, 2010
