@@ -7,7 +7,7 @@ the background turns red.
 
 Limitations: 
 
-* Always displays the temperature in degrees farenheight. 
+* Always displays the temperature in degrees Fahrenheit. 
 
 To display the temperature in your location, run the program,
 right-click the icon in the tray (it will read "NA"), select
