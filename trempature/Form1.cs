@@ -18,6 +18,7 @@ namespace trempature
         private bool _allowClose;
         private Font _iconFont; 
         private string _tempText = "NA";
+        private string _lastStatus = ""; 
         private DateTime _lastUpdate = DateTime.MinValue;
         private readonly ManageLocationsDialog _manageLocationsDialog = new ManageLocationsDialog();
         private string _currentStationId;
@@ -81,9 +82,29 @@ namespace trempature
             }
         }
 
+        private bool TempIsOutOfDate
+        {
+            get
+            {
+                return (DateTime.Now - _lastUpdate) > TimeSpan.FromMinutes(30);
+            }
+        }
+
+        private string CurrentStatus
+        {
+            get
+            {
+                return string.Format("t:{0},ood:{1}", _tempText, TempIsOutOfDate); 
+            }
+        }
+
         private void UpdateDisplay()
         {
-            notifyIcon1.Icon = GetIcon();
+            if (_lastStatus != CurrentStatus)
+            {
+                notifyIcon1.Icon = GetIcon();
+                _lastStatus = CurrentStatus; 
+            }
             if (CurrentStation == null)
             {
                 notifyIcon1.Text = "No current station";
@@ -110,7 +131,7 @@ namespace trempature
 
             Brush background;
 
-            if ((DateTime.Now - _lastUpdate) > TimeSpan.FromMinutes(30))
+            if (TempIsOutOfDate)
             {
                 background = Brushes.DarkRed;
             }
